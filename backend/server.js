@@ -19,14 +19,35 @@ app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 const PORT = process.env.PORT || 5000;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const rawClientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/+$/, "") : "";
+
+const allowedOrigins = new Set([
+    rawClientUrl,
+    "https://blogify-two-murex.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000"
+].filter(Boolean));
+
+const isOriginAllowed = (origin) => {
+    if (!origin) return true;
+    if (allowedOrigins.has(origin)) return true;
+    if (origin.endsWith(".vercel.app")) return true;
+    return false;
+};
 
 if(!process.env.MONGO_URI || !process.env.JWT_SECRET) {
     throw new Error("MONGO_URI and JWT_SECRET must be configured");
 }
 
 app.use(cors({
-    origin: CLIENT_URL,
+    origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true
 }));
 
@@ -35,7 +56,13 @@ app.use(cookieParser());
 
 const io = new Server(httpServer, {
     cors: {
-        origin: CLIENT_URL,
+        origin: (origin, callback) => {
+            if (isOriginAllowed(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true
     }
 });
