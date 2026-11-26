@@ -45,7 +45,7 @@ export const register = async (req, res) => {
             });
         }
 
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        if (!validator.isEmail(cleanEmail)) {
             return res.status(400).json({
                 message: "Enter a valid email address"
             });
